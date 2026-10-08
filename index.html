@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoMaris: Guardiões das Correntes</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #030712;
+            color: #f9fafb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.2);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid #0284c7;
+            background: #0f172a;
+        }
+
+        canvas {
+            display: block;
+            background-color: #0b132b;
+        }
+
+        /* Interface do Usuário (HUD) */
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 18px;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 12px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+
+        .hud-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 1px;
+        }
+
+        .health-bar-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .health-bar-container {
+            width: 220px;
+            background-color: #1e293b;
+            height: 18px;
+            border-radius: 999px;
+            overflow: hidden;
+            border: 2px solid #0284c7;
+        }
+
+        .health-bar {
+            width: 10%;
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+            transition: width 0.4s ease;
+        }
+
+        .stats-badge {
+            background: #1e293b;
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            font-size: 13px;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        /* Seleção de Personagens no Rodapé */
+        .hud-bottom {
+            display: flex;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 10px 14px;
+            border-radius: 14px;
+            backdrop-filter: blur(8px);
+            align-self: center;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .char-card {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid #334155;
+            background: #1e293b;
+            color: #94a3b8;
+            font-size: 11px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            pointer-events: auto;
+            min-width: 105px;
+        }
+
+        .char-card strong {
+            display: block;
+            font-size: 13px;
+            color: #f1f5f9;
+        }
+
+        .char-card.active {
+            border-color: #38bdf8;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+        }
+
+        /* Modais */
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid #38bdf8;
+            padding: 28px;
+            border-radius: 16px;
+            text-align: center;
+            pointer-events: auto;
+            max-width: 460px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal h2 {
+            color: #38bdf8;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .modal p {
+            font-size: 14px;
+            margin-bottom: 16px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .controls-list {
+            text-align: left;
+            background: #1e293b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+            line-height: 1.8;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: white;
+            border: none;
+            padding: 12px 26px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+        }
+
+        .btn:hover {
+            transform: scale(1.04);
+            background: linear-gradient(135deg, #0369a1, #075985);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+        <div id="ui-overlay">
+            <div class="hud-top">
+                <div>
+                    <div class="hud-title" id="phaseTitle">Fase 1: O Berçário de Corais</div>
+                    <div class="health-bar-wrapper" style="margin-top: 4px;">
+                        <span style="font-size: 12px; font-weight: bold;">Saúde do Oceano:</span>
+                        <div class="health-bar-container">
+                            <div id="healthBar" class="health-bar"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="stats-badge" id="trashCounter">Lixo: 0 / 8</div>
+                    <div class="stats-badge" id="crystalCounter">Corais: 0 / 1</div>
+                </div>
+            </div>
+
+            <!-- Seleção de 6 Personagens -->
+            <div class="hud-bottom">
+                <div id="card-1" class="char-card active" onclick="switchCharacter(1)">
+                    <strong>[1] Tatá</strong>
+                    Tartaruga (Resistente)
+                </div>
+                <div id="card-2" class="char-card" onclick="switchCharacter(2)">
+                    <strong>[2] Echo</strong>
+                    Golfinho (Sonar)
+                </div>
+                <div id="card-3" class="char-card" onclick="switchCharacter(3)">
+                    <strong>[3] Faísca</strong>
+                    Tubarão (Dash/Redes)
+                </div>
+                <div id="card-4" class="char-card" onclick="switchCharacter(4)">
+                    <strong>[4] Lumina</strong>
+                    Água-Viva (Luz)
+                </div>
+                <div id="card-5" class="char-card" onclick="switchCharacter(5)">
+                    <strong>[5] Planador</strong>
+                    Raia (Camuflagem)
+                </div>
+                <div id="card-6" class="char-card" onclick="switchCharacter(6)">
+                    <strong>[6] Cavalieri</strong>
+                    Cavalo-Marinho (Alavanca)
+                </div>
+            </div>
+
+            <!-- Modal Inicial -->
+            <div id="startModal" class="modal">
+                <h2>EcoMaris: Guardiões</h2>
+                <p>A Grande Corrente está morrendo devido à poluição e máquinas industriais. Restaure os mares com a aliança dos 6 guardiões!</p>
+                <div class="controls-list">
+                    🎮 <b>Movimento:</b> W, A, S, D ou Setas<br>
+                    ⚡ <b>Habilidade Especial:</b> Espaço<br>
+                    🔧 <b>Interagir / Alavanca:</b> Tecla E<br>
+                    🔄 <b>Trocar Guardião:</b> Teclas 1 a 6 ou Clique nos Cards
+                </div>
+                <button class="btn" onclick="startGame()">Iniciar Missão</button>
+            </div>
+
+            <!-- Modal de Próxima Fase / Vitória -->
+            <div id="winModal" class="modal hidden">
+                <h2 id="winTitle">Fase Concluída! 🌊</h2>
+                <p id="winMessage">Você limpou o recife e ativou o Coral de Cristal!</p>
+                <button class="btn" id="nextPhaseBtn" onclick="nextLevel()">Avançar para Próxima Fase</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Sintetizador de Áudio (Web Audio API)
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new AudioCtx();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'collect') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'sonar') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'dash') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'lever') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.setValueAtTime(600, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        // Estado do Jogo
+        let gameRunning = false;
+        let currentLevelIndex = 0;
+        let trashCollected = 0;
+        let totalTrashInLevel = 8;
+        let oceanHealth = 20;
+
+        const keys = {};
+
+        // Configuração dos 6 Personagens do GDD
+        const characters = {
+            1: { name: 'Tatá', type: 'turtle', color: '#22c55e', speed: 3.2, radius: 18, desc: 'Casco Protetor (Resistente)' },
+            2: { name: 'Echo', type: 'dolphin', color: '#38bdf8', speed: 4.8, radius: 15, desc: 'Ecolocalização (Sonar)' },
+            3: { name: 'Faísca', type: 'shark', color: '#64748b', speed: 3.8, radius: 20, desc: 'Dash (Destrói Redes/Rochas)' },
+            4: { name: 'Lumina', type: 'jellyfish', color: '#f472b6', speed: 2.8, radius: 14, desc: 'Bioluminescência (Ilumina)' },
+            5: { name: 'Planador', type: 'ray', color: '#a855f7', speed: 4.0, radius: 17, desc: 'Camuflagem na Areia' },
+            6: { name: 'Cavalieri', type: 'seahorse', color: '#eab308', speed: 3.0, radius: 13, desc: 'Cauda Preênsil (Alavancas)' }
+        };
+
+        const levels = [
+            {
+                name: "Fase 1: O Berçário de Corais",
+                darkness: 0.1,
+                totalTrash: 6,
+                hasCrystal: true,
+                hasLever: true,
+                leverActivated: false,
+                crystalActivated: false,
+                obstacles: [
+                    { x: 400, y: 100, w: 25, h: 200, type: 'net', destroyed: false },
+                    { x: 650, y: 250, w: 25, h: 200, type: 'rock', destroyed: false }
+                ]
+            },
+            {
+                name: "Fase 2: A Floresta de Kelp Sombria",
+                darkness: 0.8, // Precisa da Lumina
+                totalTrash: 8,
+                hasCrystal: true,
+                hasLever: true,
+                leverActivated: false,
+                crystalActivated: false,
+                obstacles: [
+                    { x: 300, y: 0, w: 30, h: 320, type: 'rock', destroyed: false },
+                    { x: 600, y: 200, w: 30, h: 340, type: 'net', destroyed: false }
+                ]
+            },
+            {
+                name: "Fase 3: O Cemitério de Navios",
+                darkness: 0.5,
+                totalTrash: 10,
+                hasCrystal: true,
+                hasLever: true,
+                leverActivated: false,
+                crystalActivated: false,
+                obstacles: [
+                    { x: 250, y: 150, w: 35, h: 250, type: 'net', destroyed: false },
+                    { x: 500, y: 0, w: 35, h: 300, type: 'rock', destroyed: false },
+                    { x: 750, y: 200, w: 35, h: 340, type: 'net', destroyed: false }
+                ]
+            }
+        ];
+
+        // Jogador
+        const player = {
+            x: 80,
+            y: 270,
+            currentChar: 1,
+            dashTimer: 0,
+            sonarPulse: 0,
+            camouflaged: false
+        };
+
+        // Entidades
+        let trashItems = [];
+        let leverObj = { x: 0, y: 0, active: false };
+        let crystalObj = { x: 0, y: 0, active: false };
+
+        // Escutadores de Teclado
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+
+            if (['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].includes(e.code)) {
+                const charId = parseInt(e.code.replace('Digit', ''));
+                switchCharacter(charId);
+            }
+
+            if (e.code === 'Space' && gameRunning) {
+                useAbility();
+            }
+
+            if (e.code === 'KeyE' && gameRunning) {
+                interact();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        function switchCharacter(id) {
+            player.currentChar = id;
+            document.querySelectorAll('.char-card').forEach(card => card.classList.remove('active'));
+            document.getElementById(`card-${id}`).classList.add('active');
+        }
+
+        function useAbility() {
+            const char = characters[player.currentChar];
+            if (char.type === 'shark' && player.dashTimer <= 0) {
+                player.dashTimer = 22;
+                playSound('dash');
+            } else if (char.type === 'dolphin') {
+                player.sonarPulse = 90;
+                playSound('sonar');
+            } else if (char.type === 'ray') {
+                player.camouflaged = !player.camouflaged;
+            }
+        }
+
+        function interact() {
+            const lvl = levels[currentLevelIndex];
+            const char = characters[player.currentChar];
+
+            // Alavanca requer Cavalo-Marinho (Cavalieri)
+            if (lvl.hasLever && !lvl.leverActivated) {
+                const distLever = Math.hypot(player.x - leverObj.x, player.y - leverObj.y);
+                if (distLever < 50) {
+                    if (char.type === 'seahorse') {
+                        lvl.leverActivated = true;
+                        playSound('lever');
+                        // Abre obstáculo conectado
+                        if (lvl.obstacles.length > 0) {
+                            lvl.obstacles[0].destroyed = true;
+                        }
+                    }
+                }
+            }
+
+            // Ativar Coral de Cristal
+            if (lvl.hasCrystal && !lvl.crystalActivated && trashCollected >= lvl.totalTrash) {
+                const distCrystal = Math.hypot(player.x - crystalObj.x, player.y - crystalObj.y);
+                if (distCrystal < 60) {
+                    lvl.crystalActivated = true;
+                    playSound('collect');
+                    checkLevelWin();
+                }
+            }
+        }
+
+        function loadLevel(index) {
+            currentLevelIndex = index;
+            const lvl = levels[index];
+
+            player.x = 80;
+            player.y = 270;
+            trashCollected = 0;
+            totalTrashInLevel = lvl.totalTrash;
+            oceanHealth = 20;
+
+            document.getElementById('phaseTitle').innerText = lvl.name;
+            updateUI();
+
+            // Gerar Lixo
+            trashItems = [];
+            for (let i = 0; i < lvl.totalTrash; i++) {
+                trashItems.push({
+                    x: 180 + Math.random() * (canvas.width - 320),
+                    y: 60 + Math.random() * (canvas.height - 120),
+                    type: Math.random() > 0.5 ? 'Garrafa' : 'Sacola',
+                    collected: false,
+                    revealed: false
+                });
+            }
+
+            // Posicionar Alavanca e Coral de Cristal
+            leverObj = { x: 120, y: 460, active: lvl.leverActivated };
+            crystalObj = { x: 880, y: 270, active: lvl.crystalActivated };
+        }
+
+        function startGame() {
+            document.getElementById('startModal').classList.add('hidden');
+            loadLevel(0);
+            gameRunning = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function nextLevel() {
+            document.getElementById('winModal').classList.add('hidden');
+            if (currentLevelIndex + 1 < levels.length) {
+                loadLevel(currentLevelIndex + 1);
+                gameRunning = true;
+                requestAnimationFrame(gameLoop);
+            } else {
+                // Jogo Finalizado
+                currentLevelIndex = 0;
+                loadLevel(0);
+                gameRunning = true;
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            const charProps = characters[player.currentChar];
+            let currentSpeed = charProps.speed;
+
+            if (player.dashTimer > 0) {
+                currentSpeed *= 2.6;
+                player.dashTimer--;
+            }
+
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['KeyW'] || keys['ArrowUp']) moveY -= 1;
+            if (keys['KeyS'] || keys['ArrowDown']) moveY += 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
+
+            if (moveX !== 0 && moveY !== 0) {
+                moveX *= 0.7071;
+                moveY *= 0.7071;
+            }
+
+            player.x += moveX * currentSpeed;
+            player.y += moveY * currentSpeed;
+
+            // Limites
+            player.x = Math.max(charProps.radius, Math.min(canvas.width - charProps.radius, player.x));
+            player.y = Math.max(charProps.radius, Math.min(canvas.height - charProps.radius, player.y));
+
+            // Sonar
+            if (player.sonarPulse > 0) {
+                player.sonarPulse += 4;
+                if (player.sonarPulse > 260) player.sonarPulse = 0;
+            }
+
+            // Colisão com Obstáculos
+            const currentLvl = levels[currentLevelIndex];
+            currentLvl.obstacles.forEach(obs => {
+                if (!obs.destroyed) {
+                    if (
+                        player.x + charProps.radius > obs.x &&
+                        player.x - charProps.radius < obs.x + obs.w &&
+                        player.y + charProps.radius > obs.y &&
+                        player.y - charProps.radius < obs.y + obs.h
+                    ) {
+                        // Se for o tubarão (Faísca) usando Dash, quebra o obstáculo
+                        if (charProps.type === 'shark' && player.dashTimer > 0) {
+                            obs.destroyed = true;
+                            playSound('dash');
+                        } else {
+                            player.x -= moveX * currentSpeed;
+                            player.y -= moveY * currentSpeed;
+                        }
+                    }
+                }
+            });
+
+            // Coleta de Lixo
+            trashItems.forEach(item => {
+                if (!item.collected) {
+                    const dist = Math.hypot(player.x - item.x, player.y - item.y);
+                    if (dist < charProps.radius + 14) {
+                        item.collected = true;
+                        trashCollected++;
+                        playSound('collect');
+                        oceanHealth = Math.min(100, 20 + (trashCollected / totalTrashInLevel) * 80);
+                        updateUI();
+                    }
+
+                    if (player.sonarPulse > 0) {
+                        const sonarDist = Math.hypot(player.x - item.x, player.y - item.y);
+                        if (sonarDist < player.sonarPulse) {
+                            item.revealed = true;
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkLevelWin() {
+            const lvl = levels[currentLevelIndex];
+            if (trashCollected >= lvl.totalTrash && lvl.crystalActivated) {
+                gameRunning = false;
+                const winModal = document.getElementById('winModal');
+                const winTitle = document.getElementById('winTitle');
+                const winMsg = document.getElementById('winMessage');
+                const nextBtn = document.getElementById('nextPhaseBtn');
+
+                if (currentLevelIndex + 1 < levels.length) {
+                    winTitle.innerText = "Fase Restaurada! 🪸";
+                    winMsg.innerText = "O Coral de Cristal foi reativado e a fauna voltou ao recife!";
+                    nextBtn.innerText = "Ir para Próxima Fase";
+                } else {
+                    winTitle.innerText = "Oceano Salvo! 🌊✨";
+                    winMsg.innerText = "Parabéns! Você completou todas as fases e restaurou a Grande Corrente!";
+                    nextBtn.innerText = "Reiniciar Aventura";
+                }
+
+                winModal.classList.remove('hidden');
+            }
+        }
+
+        function updateUI() {
+            const lvl = levels[currentLevelIndex];
+            document.getElementById('trashCounter').innerText = `Lixo: ${trashCollected} / ${lvl.totalTrash}`;
+            document.getElementById('crystalCounter').innerText = `Coral: ${lvl.crystalActivated ? 'Ativo 💎' : 'Inativo 🔒'}`;
+            document.getElementById('healthBar').style.width = `${oceanHealth}%`;
+        }
+
+        function render() {
+            const lvl = levels[currentLevelIndex];
+            const purity = oceanHealth / 100;
+
+            // Fundo dinâmico da água (de escuro/turvo para transparente e vívido)
+            const r = Math.round(11 * (1 - purity) + 14 * purity);
+            const g = Math.round(19 * (1 - purity) + 116 * purity);
+            const b = Math.round(43 * (1 - purity) + 144 * purity);
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar substrato / areia do fundo
+            ctx.fillStyle = purity > 0.5 ? '#d97706' : '#78350f';
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+
+            // Alavanca (Requer Cavalo-Marinho)
+            if (lvl.hasLever) {
+                ctx.fillStyle = lvl.leverActivated ? '#22c55e' : '#ef4444';
+                ctx.fillRect(leverObj.x - 10, leverObj.y - 20, 20, 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px sans-serif';
+                ctx.fillText(lvl.leverActivated ? 'Aberta' : '[E] Cavalieri', leverObj.x - 25, leverObj.y - 26);
+            }
+
+            // Coral de Cristal (Objetivo Final da Fase)
+            if (lvl.hasCrystal) {
+                ctx.fillStyle = lvl.crystalActivated ? '#38bdf8' : '#64748b';
+                ctx.beginPath();
+                ctx.arc(crystalObj.x, crystalObj.y, 22, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(trashCollected >= lvl.totalTrash ? '[E] Reativar' : 'Bloqueado', crystalObj.x - 26, crystalObj.y - 28);
+            }
+
+            // Obstáculos (Redes e Rochas)
+            lvl.obstacles.forEach(obs => {
+                if (!obs.destroyed) {
+                    if (obs.type === 'net') {
+                        ctx.fillStyle = '#b45309';
+                        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                    } else {
+                        ctx.fillStyle = '#475569';
+                        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                    }
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '9px sans-serif';
+                    ctx.fillText('Faísca [Espaço]', obs.x - 15, obs.y + obs.h / 2);
+                }
+            });
+
+            // Lixo
+            trashItems.forEach(item => {
+                if (!item.collected) {
+                    ctx.save();
+                    ctx.translate(item.x, item.y);
+
+                    if (item.type === 'Garrafa') {
+                        ctx.fillStyle = '#e2e8f0';
+                        ctx.fillRect(-5, -9, 10, 18);
+                    } else {
+                        ctx.fillStyle = '#fde047';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    if (item.revealed) {
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+            });
+
+            // Iluminação Abissal (Fase Sombria + Bioluminescência da Lumina)
+            const activeCharProps = characters[player.currentChar];
+            if (lvl.darkness > 0.3) {
+                ctx.save();
+                ctx.fillStyle = `rgba(3, 7, 18, ${activeCharProps.type === 'jellyfish' ? 0.3 : lvl.darkness})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Aura de luz em volta do jogador
+                const lightRadius = activeCharProps.type === 'jellyfish' ? 160 : 70;
+                const grad = ctx.createRadialGradient(player.x, player.y, 10, player.x, player.y, lightRadius);
+                grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, lightRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Anel do Sonar (Echo)
+            if (player.sonarPulse > 0) {
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.sonarPulse, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Desenho do Personagem do Jogador
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            if (player.camouflaged) {
+                ctx.globalAlpha = 0.4;
+            }
+
+            ctx.fillStyle = activeCharProps.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, activeCharProps.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Olhos
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(6, -4, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(7, -4, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Efeito visual de Dash do Tubarão
+            if (player.dashTimer > 0) {
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, activeCharProps.radius + 6, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            if (gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+    </script>
+</body>
+</html>
